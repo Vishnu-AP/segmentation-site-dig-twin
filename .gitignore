@@ -1,0 +1,22 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+
+# Model weights
+*.pt
+*.pth
+*.bin
+*.safetensors
+
+# Local outputs
+outputs/
+*_outputs/
+*_results/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

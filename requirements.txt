@@ -1,0 +1,9 @@
+numpy
+pillow
+tqdm
+matplotlib
+opencv-python
+torch
+transformers>=4.45
+# Optional, only needed for the YOLO backend:
+ultralytics
