@@ -7,3 +7,4 @@ To add a new backend:
 """
 from seg.backends import gdino_sam2  # noqa: F401
 from seg.backends import yolo        # noqa: F401
+from seg.backends import yoloe       # noqa: F401

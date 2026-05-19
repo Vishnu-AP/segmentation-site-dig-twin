@@ -109,6 +109,29 @@ Backend args:
 - `--yolo-model` (path or hub name, e.g. `yolo11x-seg.pt`)
 - `--imgsz`, `--conf`
 
+### `yoloe`
+Ultralytics **YOLOE** — open-vocabulary segmentation (the YOLO-Worldv2
+successor). Unlike plain YOLO-seg, YOLOE accepts your class names directly as
+text prompts via `model.set_classes(...)` and returns masks for them, so
+classes.json keys are used verbatim — no name-matching required.
+
+> ℹ️ Plain **YOLO-World** does **not** work with the `yolo` backend: it's
+> detection-only (no masks) and needs `set_classes` to bind prompts. Use the
+> `yoloe` backend for open-vocab YOLO-style segmentation.
+
+Backend args:
+- `--yoloe-model` (path or hub name, e.g. `yoloe-11s-seg.pt`, `yoloe-11l-seg.pt`)
+- `--yoloe-imgsz`, `--yoloe-conf`
+
+```bash
+python segment.py -i imgs/ -o out/ \
+    --backend yoloe \
+    --yoloe-model yoloe-11l-seg.pt \
+    -c configs/classes.json
+```
+
+Requires a recent `ultralytics` version with YOLOE support (`pip install -U ultralytics`).
+
 ---
 
 ## Adding a new backend
