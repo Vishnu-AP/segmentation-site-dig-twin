@@ -22,7 +22,9 @@ from seg.io_utils import (
 from seg.visualization import display_overlay, make_overlay
 
 
-def build_parser() -> argparse.ArgumentParser:
+def build_parser():
+    """Returns (parser, backend_dests) where backend_dests maps
+    backend_name -> set of argparse dest names that backend owns."""
     p = argparse.ArgumentParser(
         prog="segment.py",
         description="Segment a single image or a folder of images into per-pixel class labels.",
@@ -45,12 +47,15 @@ def build_parser() -> argparse.ArgumentParser:
                    help="Show each overlay in a window (press any key to advance).")
     p.add_argument("--verbose", action="store_true")
 
-    # Inject per-backend args under their respective group.
+    backend_dests = {}
     for name in list_backends():
         group = p.add_argument_group(f"{name} backend options")
+        before = {a.dest for a in p._actions}
         get_backend(name).add_cli_args(group)
+        after = {a.dest for a in p._actions}
+        backend_dests[name] = after - before
 
-    return p
+    return p, backend_dests
 
 
 def print_config_banner(args, classes, image_paths, backend_kwargs):
@@ -75,7 +80,8 @@ def print_config_banner(args, classes, image_paths, backend_kwargs):
 
 
 def main(argv: List[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+    parser, backend_dests = build_parser()
+    args = parser.parse_args(argv)
 
     if args.device == "cuda" and not torch.cuda.is_available():
         print("[WARN] CUDA requested but not available — falling back to CPU.", file=sys.stderr)
@@ -84,13 +90,20 @@ def main(argv: List[str] | None = None) -> int:
     classes = load_classes(args.classes)
     image_paths = discover_images(args.input)
 
+    # Warn about flags belonging to inactive backends that were set to non-defaults.
+    defaults = {a.dest: a.default for a in parser._actions}
+    for name, dests in backend_dests.items():
+        if name == args.backend:
+            continue
+        stray = [d for d in dests if getattr(args, d) != defaults[d]]
+        if stray:
+            flags = ", ".join(f"--{d.replace('_','-')}" for d in stray)
+            print(f"[WARN] {flags} belong(s) to backend '{name}', "
+                  f"but active backend is '{args.backend}'. "
+                  f"Use --backend {name} to apply them.", file=sys.stderr)
+
     backend_cls = get_backend(args.backend)
-    top_level_keys = ("classes", "device", "input", "output", "backend",
-                      "batch_size", "alpha", "display", "verbose")
-    backend_kwargs = {
-        k.replace("-", "_"): v for k, v in vars(args).items()
-        if k not in top_level_keys
-    }
+    backend_kwargs = {d: getattr(args, d) for d in backend_dests[args.backend]}
 
     print_config_banner(args, classes, image_paths, backend_kwargs)
 
