@@ -53,6 +53,27 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+def print_config_banner(args, classes, image_paths, backend_kwargs):
+    bar = "=" * 60
+    print(bar)
+    print(" segmentation-site-dig-twin")
+    print(bar)
+    print(f"  Backend     : {args.backend}")
+    print(f"  Device      : {args.device}")
+    print(f"  Input       : {args.input}  ({len(image_paths)} image(s))")
+    print(f"  Output dir  : {args.output}")
+    print(f"  Classes     : {args.classes}")
+    for name, cid in classes.items():
+        print(f"                  {cid}: {name}")
+    print(f"  Batch size  : {args.batch_size}")
+    print(f"  Overlay α   : {args.alpha}    Display: {args.display}")
+    if backend_kwargs:
+        print(f"  {args.backend} options:")
+        for k, v in backend_kwargs.items():
+            print(f"      --{k.replace('_', '-')}: {v}")
+    print(bar)
+
+
 def main(argv: List[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
 
@@ -63,18 +84,16 @@ def main(argv: List[str] | None = None) -> int:
     classes = load_classes(args.classes)
     image_paths = discover_images(args.input)
 
-    if args.verbose:
-        print(f"Backend:     {args.backend}")
-        print(f"Device:      {args.device}")
-        print(f"Classes:     {classes}")
-        print(f"Images:      {len(image_paths)} file(s)")
-        print(f"Output dir:  {args.output}")
-
     backend_cls = get_backend(args.backend)
-    backend_kwargs = {k.replace("-", "_"): v for k, v in vars(args).items()}
-    for k in ("classes", "device", "input", "output", "backend", "batch_size",
-              "alpha", "display", "verbose"):
-        backend_kwargs.pop(k, None)
+    top_level_keys = ("classes", "device", "input", "output", "backend",
+                      "batch_size", "alpha", "display", "verbose")
+    backend_kwargs = {
+        k.replace("-", "_"): v for k, v in vars(args).items()
+        if k not in top_level_keys
+    }
+
+    print_config_banner(args, classes, image_paths, backend_kwargs)
+
     segmenter = backend_cls(classes=classes, device=args.device, **backend_kwargs)
 
     Path(args.output).mkdir(parents=True, exist_ok=True)
