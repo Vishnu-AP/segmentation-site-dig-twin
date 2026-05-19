@@ -71,7 +71,11 @@ def main(argv: List[str] | None = None) -> int:
         print(f"Output dir:  {args.output}")
 
     backend_cls = get_backend(args.backend)
-    segmenter = backend_cls(classes=classes, device=args.device, **vars(args))
+    backend_kwargs = {k.replace("-", "_"): v for k, v in vars(args).items()}
+    for k in ("classes", "device", "input", "output", "backend", "batch_size",
+              "alpha", "display", "verbose"):
+        backend_kwargs.pop(k, None)
+    segmenter = backend_cls(classes=classes, device=args.device, **backend_kwargs)
 
     Path(args.output).mkdir(parents=True, exist_ok=True)
     write_class_legend(args.output, classes)
